@@ -282,5 +282,5 @@ Open your browser at: **http://localhost:3000**
 ---
 
 <p align="center">
-  Built with ❤️ by <b>Team Stormbreakers</b> for <b>RIFT 2026</b>
+  Built by <b>Team Stormbreakers</b> for <b>RIFT 2026</b>
 </p>
