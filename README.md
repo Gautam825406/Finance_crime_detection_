@@ -18,7 +18,7 @@
     <img alt="GitHub Repo" src="https://img.shields.io/badge/GitHub-Repo-181717?style=for-the-badge&logo=github">
   </a>
   <img alt="Next.js" src="https://img.shields.io/badge/Next.js-14-000000?style=for-the-badge&logo=nextdotjs">
-  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-97%25-3178C6?style=for-the-badge&logo=typescript&logoColor=white">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-25-3178C6?style=for-the-badge&logo=typescript&logoColor=white">
   <img alt="Cytoscape" src="https://img.shields.io/badge/Cytoscape.js-Graph%20Viz-2C2C2C?style=for-the-badge">
 </p>
 
