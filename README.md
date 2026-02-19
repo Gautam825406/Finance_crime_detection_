@@ -281,12 +281,6 @@ Open your browser at: **http://localhost:3000**
 
 ---
 
-## 📄 License
-
-This project is licensed under the **MIT License**.
-
----
-
 <p align="center">
   Built with ❤️ by <b>Team Stormbreakers</b> for <b>RIFT 2026</b>
 </p>
