@@ -2,13 +2,28 @@ import type { Transaction, ParsedTransaction, GraphData, NodeData, CSVValidation
 
 const REQUIRED_COLUMNS = ["transaction_id", "sender_id", "receiver_id", "amount", "timestamp"] as const;
 
-const TIMESTAMP_REGEX = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+/**
+ * Accepts both "YYYY-MM-DD HH:MM:SS" and "YYYY-MM-DD H:MM:SS" (1-digit hour).
+ * Whitespace between date and time is \s+ to tolerate minor formatting variance.
+ */
+const TIMESTAMP_REGEX = /^\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}:\d{2}$/;
 
 /** Maximum CSV file size: 50 MB */
 const MAX_CSV_SIZE_BYTES = 50 * 1024 * 1024;
 
 /** Maximum allowed validation errors before aborting parse */
 const MAX_ERRORS = 50;
+
+/**
+ * Normalizes a timestamp to the strict RIFT format "YYYY-MM-DD HH:MM:SS".
+ * Pads a 1-digit hour with a leading zero (e.g. "3:01:00" → "03:01:00").
+ * Assumes the input already passed TIMESTAMP_REGEX.
+ */
+function normalizeTimestamp(raw: string): string {
+  const [datePart, timePart] = raw.trim().split(/\s+/);
+  const [hour, min, sec] = timePart.split(":");
+  return `${datePart} ${hour.padStart(2, "0")}:${min}:${sec}`;
+}
 
 function parseTimestamp(ts: string): number {
   return new Date(ts.replace(" ", "T") + "Z").getTime();
@@ -134,12 +149,15 @@ export function validateCSV(rawText: string): CSVValidationResult {
     }
 
     if (!TIMESTAMP_REGEX.test(timestamp)) {
-      errors.push({ row: i + 1, message: `Invalid timestamp format: "${timestamp}". Expected YYYY-MM-DD HH:MM:SS.` });
+      errors.push({ row: i + 1, message: `Invalid timestamp format: "${timestamp}". Expected YYYY-MM-DD HH:MM:SS (or H:MM:SS).` });
       if (errors.length > MAX_ERRORS) break;
       continue;
     }
 
-    const tsMs = parseTimestamp(timestamp);
+    // Normalize to strict RIFT format: pad 1-digit hour → "03:01:00"
+    const normalizedTs = normalizeTimestamp(timestamp);
+
+    const tsMs = parseTimestamp(normalizedTs);
     if (isNaN(tsMs)) {
       errors.push({ row: i + 1, message: `Unparseable timestamp: "${timestamp}".` });
       if (errors.length > MAX_ERRORS) break;
@@ -151,7 +169,7 @@ export function validateCSV(rawText: string): CSVValidationResult {
       sender_id: senderId,
       receiver_id: receiverId,
       amount,
-      timestamp,
+      timestamp: normalizedTs,
     });
   }
 
