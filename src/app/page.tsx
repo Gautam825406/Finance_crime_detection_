@@ -179,6 +179,7 @@ export default function LandingPage() {
             Open App
           </Link>
         </div>
+
       </header>
 
       {/* ─── Hero ─── */}
@@ -193,15 +194,13 @@ export default function LandingPage() {
 
         <div className="w-full mx-auto px-6 lg:px-12 pt-24 pb-32 relative">
           <div className="text-center max-w-5xl mx-auto">
-            <div className="animate-fade-in-up inline-flex items-center gap-2.5 px-4 py-2 glass rounded-full mb-10">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-              </span>
-              <span className="text-slate-400 text-xs font-medium tracking-widest uppercase">Built for RIFT 2026 — Graph Theory Track</span>
+            <div className="mb-10">
+             
+              {/* <span className="text-slate-400 text-xs font-medium tracking-widest uppercase">Built for RIFT 2026 — Graph Theory Track</span> */}
             </div>
 
             <h2 className="animate-fade-in-up text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold leading-[1.05] mb-8 tracking-tight" style={{ animationDelay: "100ms" }}>
+              
               <span className="bg-gradient-to-b from-white via-white to-slate-500 bg-clip-text text-transparent">Find the Fraud</span>
               <br />
               <span className="bg-gradient-to-r from-blue-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">Hidden in the</span>
@@ -488,8 +487,8 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-slate-700 text-xs">&copy; 2026 — Made with too much coffee for RIFT 2026 Hackathon.</p>
-            <p className="text-slate-700 text-xs">Graph Theory Track &middot; Open to everyone &middot; No login needed</p>
+            {/* <p className="text-slate-700 text-xs">&copy; 2026 — Made with too much coffee for RIFT 2026 Hackathon.</p> */}
+            {/* <p className="text-slate-700 text-xs">Graph Theory Track &middot; Open to everyone &middot; No login needed</p> */}
           </div>
         </div>
       </footer>
