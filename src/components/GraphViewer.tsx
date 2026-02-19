@@ -237,11 +237,38 @@ export default function GraphViewer({ result, csvText, onNodeSelect }: GraphView
 
       if (!mounted || !containerRef.current) return;
 
+      // Destroy any existing instance to avoid memory leaks
+      if (cyRef.current) {
+        cyRef.current.destroy();
+        cyRef.current = null;
+      }
+
       const { nodes, edges } = buildElements();
+      const totalEdges = edges.length;
+
+      // Adaptive layout: grid for large graphs (>2000 edges), cose for smaller ones
+      // Grid layout is O(V) vs cose's O(V^2), critical for 10K transaction performance
+      const layoutConfig: cytoscape.LayoutOptions = totalEdges > 2000
+        ? {
+            name: "grid",
+            animate: false,
+            condense: true,
+            avoidOverlap: true,
+          } as cytoscape.LayoutOptions
+        : {
+            name: "cose",
+            animate: false,
+            nodeOverlap: 20,
+            idealEdgeLength: () => 100,
+            nodeRepulsion: () => 8000,
+            gravity: 0.25,
+            numIter: 500,
+          } as cytoscape.LayoutOptions;
 
       const instance = cytoscapeLib({
         container: containerRef.current,
-        elements: [...nodes, ...edges],
+        // Use empty elements initially, add via batch for performance
+        elements: [],
         style: [
           // --- Normal (non-suspicious, non-ring) nodes ---
           {
@@ -319,21 +346,23 @@ export default function GraphViewer({ result, csvText, onNodeSelect }: GraphView
             },
           },
         ],
-        layout: {
-          name: "cose",
-          animate: false,
-          nodeOverlap: 20,
-          idealEdgeLength: () => 100,
-          nodeRepulsion: () => 8000,
-          gravity: 0.25,
-          numIter: 500,
-        } as cytoscape.LayoutOptions,
+        // Layout is applied after batch element addition (below)
+        layout: { name: "preset" } as cytoscape.LayoutOptions,
         minZoom: 0.1,
         maxZoom: 4,
         wheelSensitivity: 0.3,
       });
 
-      // --- Click handlers for node selection ---
+      // Use cy.batch() to add all elements in one render pass — avoids
+      // intermediate layout recalculations. Critical for 10K+ edge performance.
+      instance.batch(() => {
+        instance.add([...nodes, ...edges]);
+      });
+
+      // Now run the adaptive layout
+      instance.layout(layoutConfig).run();
+
+      // --- Click handlers: show details for ALL nodes, not just suspicious ---
       const suspiciousMap = new Map<string, SuspiciousAccount>();
       for (const sa of result.suspicious_accounts) {
         suspiciousMap.set(sa.account_id, sa);
@@ -341,8 +370,21 @@ export default function GraphViewer({ result, csvText, onNodeSelect }: GraphView
 
       instance.on("tap", "node", (evt) => {
         const nodeId = evt.target.id() as string;
-        const sa = suspiciousMap.get(nodeId);
-        onNodeSelect(sa ?? null);
+        const existing = suspiciousMap.get(nodeId);
+        if (existing) {
+          // Known suspicious account — show full details
+          onNodeSelect(existing);
+        } else {
+          // Non-suspicious node — build a minimal detail object
+          // so the panel always shows something useful on click
+          const nodeData = evt.target.data();
+          onNodeSelect({
+            account_id: nodeId,
+            suspicion_score: nodeData.suspicionScore ?? 0,
+            detected_patterns: [],
+            ring_id: nodeData.ringId || "",
+          });
+        }
       });
 
       instance.on("tap", (evt) => {

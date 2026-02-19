@@ -1,3 +1,20 @@
+/**
+ * Smurfing / Structuring Detection Module
+ *
+ * Detects fan-in and fan-out patterns: accounts that aggregate from or
+ * distribute to 10+ counterparties within sliding 72-hour windows.
+ *
+ * False-positive mitigation:
+ *   - Merchant accounts (>200 tx total OR high in-degree with low amount CV)
+ *   - Payroll accounts (periodic outgoing timing with CV < 0.4)
+ *   - Stable recurring patterns (low CV in both amount *and* timing gaps)
+ *
+ * Complexity:
+ *   Time:  O(V · W · d) where V = accounts, W = # of 72h windows per account,
+ *          d = degree of the account. Window count is bounded by |E_node|.
+ *   Space: O(V + |results|). Per-account sets are short-lived.
+ *   Early termination: stops after 1000 smurfing patterns.
+ */
 import type { GraphData, SmurfingPattern, ParsedTransaction, NodeData, FalsePositiveProfile } from "./types";
 
 const SEVENTY_TWO_HOURS_MS = 72 * 60 * 60 * 1000;

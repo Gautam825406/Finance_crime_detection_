@@ -141,6 +141,7 @@ export function buildAnalysisResult(
   processingTimeSeconds: number
 ): AnalysisResult {
   // Build fraud_rings with exact field order: ring_id, member_accounts, pattern_type, risk_score
+  // risk_score is hard-clamped to [0, 100] per RIFT spec
   const fraudRings: FraudRingOutput[] = [];
 
   for (const cycle of cycles) {
@@ -148,7 +149,7 @@ export function buildAnalysisResult(
       ring_id: cycle.ring_id,
       member_accounts: [...cycle.member_accounts],
       pattern_type: cycle.pattern_type,
-      risk_score: toFixed1(cycle.risk_score),
+      risk_score: toFixed1(Math.max(0, Math.min(100, cycle.risk_score))),
     });
   }
 
@@ -157,7 +158,7 @@ export function buildAnalysisResult(
       ring_id: pattern.ring_id,
       member_accounts: [...pattern.member_accounts],
       pattern_type: pattern.pattern_type,
-      risk_score: toFixed1(pattern.risk_score),
+      risk_score: toFixed1(Math.max(0, Math.min(100, pattern.risk_score))),
     });
   }
 
@@ -166,18 +167,22 @@ export function buildAnalysisResult(
       ring_id: pattern.ring_id,
       member_accounts: [...pattern.member_accounts],
       pattern_type: pattern.pattern_type,
-      risk_score: toFixed1(pattern.risk_score),
+      risk_score: toFixed1(Math.max(0, Math.min(100, pattern.risk_score))),
     });
   }
 
-  // Ensure suspicious_accounts have proper decimal formatting
+  // Ensure suspicious_accounts have proper decimal formatting, clamping,
   // and field order: account_id, suspicion_score, detected_patterns, ring_id
+  // suspicion_score is hard-clamped to [0, 100] per RIFT spec
   const cleanAccounts: SuspiciousAccount[] = suspiciousAccounts.map((sa) => ({
     account_id: sa.account_id,
-    suspicion_score: toFixed1(sa.suspicion_score),
+    suspicion_score: toFixed1(Math.max(0, Math.min(100, sa.suspicion_score))),
     detected_patterns: [...sa.detected_patterns],
     ring_id: sa.ring_id || "",
   }));
+
+  // Sort descending by suspicion_score for deterministic output
+  cleanAccounts.sort((a, b) => b.suspicion_score - a.suspicion_score);
 
   // Summary with exact field order and processing_time_seconds at 2 decimals
   const summary: AnalysisSummary = {

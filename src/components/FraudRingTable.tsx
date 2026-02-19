@@ -117,21 +117,10 @@ export default function FraudRingTable({ rings }: FraudRingTableProps) {
                     </span>
                   </td>
                   <td className="px-5 py-3.5">
-                    <div className="flex flex-wrap gap-1.5 max-w-md">
-                      {ring.member_accounts.slice(0, 8).map((acc) => (
-                        <span
-                          key={acc}
-                          className="px-2 py-0.5 bg-white/[0.03] text-slate-400 rounded-md text-xs font-mono border border-white/5"
-                        >
-                          {acc}
-                        </span>
-                      ))}
-                      {ring.member_accounts.length > 8 && (
-                        <span className="px-2 py-0.5 bg-white/[0.03] text-slate-600 rounded-md text-xs border border-white/5">
-                          +{ring.member_accounts.length - 8} more
-                        </span>
-                      )}
-                    </div>
+                    {/* RIFT spec: "Member Account IDs (comma-separated)" — full list, no truncation */}
+                    <p className="text-slate-400 text-xs font-mono leading-relaxed break-all">
+                      {ring.member_accounts.join(", ")}
+                    </p>
                   </td>
                 </tr>
               );

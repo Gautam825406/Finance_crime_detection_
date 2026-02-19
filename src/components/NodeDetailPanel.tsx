@@ -23,14 +23,26 @@ export default function NodeDetailPanel({ account }: NodeDetailPanelProps) {
     );
   }
 
+  const score = account.suspicion_score;
+  const isSuspicious = score > 0 || account.detected_patterns.length > 0;
+
   const scoreColor =
-    account.suspicion_score >= 75
+    score >= 75
       ? "text-red-400"
-      : account.suspicion_score >= 50
+      : score >= 50
         ? "text-orange-400"
-        : account.suspicion_score >= 25
+        : score >= 25
           ? "text-yellow-400"
           : "text-green-400";
+
+  const barColor =
+    score >= 75
+      ? "bg-red-500"
+      : score >= 50
+        ? "bg-orange-500"
+        : score >= 25
+          ? "bg-yellow-500"
+          : "bg-green-500";
 
   return (
     <div className="glass rounded-2xl p-6 shadow-card">
@@ -52,20 +64,12 @@ export default function NodeDetailPanel({ account }: NodeDetailPanelProps) {
         <div>
           <span className="text-slate-500 text-[11px] font-medium uppercase tracking-widest">Suspicion Score</span>
           <p className={`text-3xl font-bold mt-1 ${scoreColor}`}>
-            {account.suspicion_score.toFixed(1)}
+            {score.toFixed(1)}
           </p>
           <div className="w-full bg-white/5 rounded-full h-1.5 mt-2">
             <div
-              className={`h-1.5 rounded-full transition-all duration-500 ${
-                account.suspicion_score >= 75
-                  ? "bg-red-500"
-                  : account.suspicion_score >= 50
-                    ? "bg-orange-500"
-                    : account.suspicion_score >= 25
-                      ? "bg-yellow-500"
-                      : "bg-green-500"
-              }`}
-              style={{ width: `${Math.min(100, account.suspicion_score)}%` }}
+              className={`h-1.5 rounded-full transition-all duration-500 ${barColor}`}
+              style={{ width: `${Math.min(100, score)}%` }}
             />
           </div>
         </div>
@@ -73,14 +77,20 @@ export default function NodeDetailPanel({ account }: NodeDetailPanelProps) {
         <div>
           <span className="text-slate-500 text-[11px] font-medium uppercase tracking-widest">Detected Patterns</span>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {account.detected_patterns.map((pattern) => (
-              <span
-                key={pattern}
-                className="px-2.5 py-1 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs font-medium"
-              >
-                {pattern}
+            {isSuspicious ? (
+              account.detected_patterns.map((pattern) => (
+                <span
+                  key={pattern}
+                  className="px-2.5 py-1 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs font-medium"
+                >
+                  {pattern}
+                </span>
+              ))
+            ) : (
+              <span className="px-2.5 py-1 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-xs font-medium">
+                Clean — no suspicious patterns
               </span>
-            ))}
+            )}
           </div>
         </div>
 
