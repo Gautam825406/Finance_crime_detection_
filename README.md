@@ -1,6 +1,7 @@
 <!-- =========================
      RIFT 2026 — README.md
      Visually enhanced with badges + SVG architecture diagram
+     Team: Stormbreakers
      ========================= -->
 
 <p align="center">
@@ -10,7 +11,8 @@
 <h1 align="center">🚨 Graph-Based Financial Crime Detection Engine</h1>
 <p align="center">
   <b>RIFT 2026 Hackathon — Graph Theory Track</b><br/>
-  <b>Money Muling Detection Challenge</b>
+  <b>Money Muling Detection Challenge</b><br/>
+  <b>Team: ⚡ Stormbreakers ⚡</b>
 </p>
 
 <p align="center">
@@ -38,6 +40,16 @@
 
 ---
 
+## 🎯 What this project does (1-minute view)
+
+Upload a transactions CSV → the engine builds a directed graph → detects money-muling rings (cycles, smurfing, layering) → highlights rings in an interactive graph → produces a strict-format JSON report for judge evaluation.
+
+**Designed for:**
+- Hidden datasets with fraud + legit trap patterns  
+- 10K transactions within the required time budget  
+
+---
+
 ## 📌 Problem Overview
 
 Money muling is a critical component of financial crime where criminals use networks of individuals (“mules”) to transfer and layer illicit funds through multiple accounts. Traditional database queries fail to detect sophisticated **multi-hop networks**.
@@ -49,7 +61,7 @@ This project builds a **web-based Financial Forensics Engine** that processes tr
 ## ✨ Key Features
 
 - 📥 **CSV Upload** (strict RIFT schema validation)
-- 🕸️ **Graph Construction** (directed money flow)
+- 🕸️ **Graph Construction** (directed money flow, adjacency list)
 - 🔁 **Cycle Detection** (length 3–5)
 - 🌪️ **Smurfing Detection** (fan-in / fan-out within 72 hours)
 - 🧅 **Layered Shell Detection** (3+ hops through low-degree intermediates)
@@ -57,6 +69,7 @@ This project builds a **web-based Financial Forensics Engine** that processes tr
 - 🎯 **Fraud Ring Summary Table**
 - 📄 **Exact JSON Output Download** (line-by-line match safe)
 - ⚡ **Adaptive Graph Layout** (fast for 10K transactions)
+- 🧭 **Node Interactions**: click/hover shows account-level detail
 
 ---
 
@@ -136,14 +149,14 @@ This project builds a **web-based Financial Forensics Engine** that processes tr
 - **Next.js 14** + **React 18**
 - **TypeScript**
 - **Tailwind CSS**
-- **Cytoscape.js** (graph visualization)
-- In-memory graph pipeline (fast for 10K txns)
+- **Cytoscape.js**
+- In-memory graph processing (fast for hackathon scale)
 
 ---
 
 ## 📥 Input Specification (Strict RIFT Format)
 
-Your web app must accept CSV upload with the exact columns:
+Your web app accepts CSV upload with exact columns:
 
 | Column Name | Type | Description |
 |---|---|---|
@@ -159,27 +172,60 @@ Your web app must accept CSV upload with the exact columns:
 
 ### 1) Circular Fund Routing (Cycles)
 - Detect cycles of length **3 to 5**
-- All accounts in the cycle are flagged as part of the same ring
+- All accounts in a cycle belong to the same ring
+
+**Approach:** bounded DFS + canonical cycle dedupe  
+**Complexity:** ~O(V + E) with depth ≤ 5
 
 ### 2) Smurfing (Fan-in / Fan-out within 72h)
-- Fan-in: **10+ senders → 1 receiver** in 72h  
-- Fan-out: **1 sender → 10+ receivers** in 72h  
-- Uses temporal analysis for velocity and redistribution
+- Fan-in: **10+ senders → 1 receiver** within 72h  
+- Fan-out: **1 sender → 10+ receivers** within 72h  
+- Adds velocity & redistribution signals
+
+**Approach:** timestamp sorting + sliding time window  
+**Complexity:** O(T log T) due to sorting
 
 ### 3) Layered Shell Networks
-- Chains of **3+ hops**
-- Intermediate accounts have only **2–3 total transactions**
-- Designed to catch multi-hop layering through shells
+- Detect chains of **3+ hops**
+- Intermediate accounts: **2–3 total transactions** (shell-like)
+- Designed to expose multi-hop layering
+
+**Approach:** bounded DFS with shell ratio constraints + pruning  
+**Complexity:** bounded traversal with early exits
 
 ---
 
-## 📤 Required Outputs
+## 📊 Suspicion Score Methodology (0–100)
+
+We compute a weighted risk score per account using detected patterns:
+
+| Signal | Contribution |
+|---|---:|
+| Cycle participation | +35 |
+| Fan-in (smurfing) | +30 |
+| Fan-out (smurfing) | +30 |
+| High velocity | +10 |
+| Layered shell chain | +25 |
+
+### False-Positive Controls (Important)
+To avoid flagging legitimate accounts:
+- **Merchants:** high volume + low variance amounts + not in cycles → reduce score
+- **Payroll:** periodic payments with consistent amounts to many receivers → reduce score
+
+Final score:
+- Clamped to 0–100
+- Rounded to 1 decimal
+- Sorted descending in JSON output
+
+---
+
+## 📤 Required Outputs (RIFT-Compliant)
 
 ### ✅ 1) Interactive Graph Visualization
 - All accounts shown as nodes
 - Directed edges represent money flow
 - Rings highlighted, suspicious nodes visually distinct
-- Click/hover shows account details
+- Node click/hover shows details
 
 ### ✅ 2) Downloadable JSON Output (Exact Format)
 
