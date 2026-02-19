@@ -87,8 +87,23 @@ export function buildFalsePositiveProfile(
   };
 }
 
+/**
+ * Enhanced merchant detection: an account is merchant-like if it receives
+ * high-volume incoming transactions with consistent amounts and predominantly
+ * one-directional flow (many senders, few outgoing).
+ *
+ * Criteria (upgraded for false-positive control):
+ * - Total transactions > 200  OR  in_degree > 20
+ * - Coefficient of variation (CV) of incoming amounts < 0.4
+ * - in_degree > out_degree * 3  (receive-heavy pattern)
+ *
+ * Time complexity: O(t) where t = number of incoming transactions for this node.
+ */
 function checkMerchantLike(nodeData: NodeData): boolean {
-  if (nodeData.in_degree < 20) return false;
+  const totalTx = nodeData.in_degree + nodeData.out_degree;
+
+  // Must have significant transaction volume
+  if (totalTx <= 200 && nodeData.in_degree < 20) return false;
 
   const inAmounts = nodeData.in_transactions.map((tx) => tx.amount);
   if (inAmounts.length < 10) return false;
@@ -100,9 +115,21 @@ function checkMerchantLike(nodeData: NodeData): boolean {
   const stddev = Math.sqrt(variance);
   const cv = stddev / avg;
 
-  return cv < 0.5 && nodeData.in_degree > nodeData.out_degree * 3;
+  // Highly consistent incoming amounts AND predominantly receive-heavy
+  return cv < 0.4 && nodeData.in_degree > nodeData.out_degree * 3;
 }
 
+/**
+ * Detects payroll-like patterns: 1 sender → many receivers with repeated
+ * similar amounts and regular timestamp intervals (monthly/bi-weekly/daily).
+ *
+ * Criteria:
+ * - out_degree >= 5 (sends to multiple receivers)
+ * - >= 70% of receivers receive consistent amounts (CV < 10%)
+ * - Optionally checks for periodic timing (monthly or bi-weekly intervals)
+ *
+ * Time complexity: O(t) where t = number of outgoing transactions.
+ */
 function checkPayrollLike(nodeData: NodeData): boolean {
   if (nodeData.out_degree < 5) return false;
 
@@ -115,23 +142,48 @@ function checkPayrollLike(nodeData: NodeData): boolean {
   }
 
   const amountsByReceiver = new Map<string, number[]>();
+  const timestampsByReceiver = new Map<string, number[]>();
   for (const tx of outTxs) {
     if (!amountsByReceiver.has(tx.receiver_id)) {
       amountsByReceiver.set(tx.receiver_id, []);
+      timestampsByReceiver.set(tx.receiver_id, []);
     }
     (amountsByReceiver.get(tx.receiver_id) as number[]).push(tx.amount);
+    (timestampsByReceiver.get(tx.receiver_id) as number[]).push(tx.timestamp_ms);
   }
 
   let consistentCount = 0;
-  for (const amounts of amountsByReceiver.values()) {
+  let periodicCount = 0;
+  for (const [receiverId, amounts] of amountsByReceiver) {
     if (amounts.length < 2) continue;
     const avg = amounts.reduce((s, v) => s + v, 0) / amounts.length;
     if (avg === 0) continue;
     const allClose = amounts.every((a) => Math.abs(a - avg) / avg < 0.1);
     if (allClose) consistentCount++;
+
+    // Check for periodic timing (monthly ~30d, bi-weekly ~14d, or daily ~1d)
+    const timestamps = timestampsByReceiver.get(receiverId);
+    if (timestamps && timestamps.length >= 2) {
+      const sorted = [...timestamps].sort((a, b) => a - b);
+      const gaps: number[] = [];
+      for (let i = 1; i < sorted.length; i++) {
+        gaps.push(sorted[i] - sorted[i - 1]);
+      }
+      if (gaps.length > 0) {
+        const avgGap = gaps.reduce((s, v) => s + v, 0) / gaps.length;
+        const gapVariance = gaps.reduce((s, v) => s + (v - avgGap) * (v - avgGap), 0) / gaps.length;
+        const gapCV = avgGap > 0 ? Math.sqrt(gapVariance) / avgGap : Infinity;
+        // Low variance in payment intervals indicates regular scheduling
+        if (gapCV < 0.3) periodicCount++;
+      }
+    }
   }
 
-  return consistentCount >= receivers.size * 0.7;
+  const amountConsistent = consistentCount >= receivers.size * 0.7;
+  const hasPeriodicity = periodicCount >= receivers.size * 0.5;
+
+  // Payroll if amounts are consistent; periodic timing strengthens the signal
+  return amountConsistent || (consistentCount >= receivers.size * 0.5 && hasPeriodicity);
 }
 
 function checkStableRecurring(nodeData: NodeData): boolean {
@@ -154,6 +206,16 @@ function checkStableRecurring(nodeData: NodeData): boolean {
   return recurringCount >= counterparties.size * 0.6;
 }
 
+/**
+ * Detects smurfing patterns (fan-in/fan-out with rapid redistribution).
+ * Uses sliding time-windows over pre-sorted transaction lists.
+ *
+ * Time complexity: O(V · W) where V = vertices, W = number of unique hourly
+ *   time windows per node. Each window scan is O(t) for that node's transactions.
+ *   Overall effectively O(V · t_max) where t_max = max transactions per node.
+ * Space complexity: O(V + |results|).
+ * Early termination: stops after 500 patterns to bound output size.
+ */
 export function detectSmurfing(graph: GraphData, existingRingCount: number): SmurfingPattern[] {
   const results: SmurfingPattern[] = [];
   let ringCounter = existingRingCount;

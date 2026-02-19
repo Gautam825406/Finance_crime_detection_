@@ -84,6 +84,19 @@ function computeCycleRiskScore(
   return parseFloat(score.toFixed(1));
 }
 
+/**
+ * Detects directed cycles of length 3–5 in the transaction graph using
+ * iterative depth-limited DFS from every node.
+ *
+ * Canonicalization (rotation to lexicographic minimum) prevents duplicate
+ * cycle reporting. Temporal proximity and amount similarity are evaluated
+ * for each discovered cycle to compute risk scores.
+ *
+ * Time complexity: O(V · d^k) where V = vertices, d = avg out-degree, k = max depth (5).
+ *   The depth limit (k=5) bounds the search so this does NOT degenerate to O(V!).
+ * Space complexity: O(V + |results|). DFS stack is bounded by depth limit.
+ * Early termination: stops after 5000 cycles to prevent runaway on dense graphs.
+ */
 export function detectCycles(graph: GraphData): DetectedCycle[] {
   const foundCanonical = new Set<string>();
   const results: DetectedCycle[] = [];

@@ -1,7 +1,5 @@
 "use client";
 
-import type { AnalysisResult } from "@/lib/types";
-
 interface ErrorDisplayProps {
   errors: Array<{ row: number; message: string }>;
 }

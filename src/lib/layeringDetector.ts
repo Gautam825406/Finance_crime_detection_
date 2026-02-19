@@ -77,6 +77,17 @@ function checkAmountPreservation(
   return (maxAmount - minAmount) / maxAmount <= AMOUNT_SIMILARITY_THRESHOLD;
 }
 
+/**
+ * Detects layered shell-company networks: chains of 3+ hops through
+ * low-activity intermediary ("shell") nodes with temporal continuity
+ * and/or amount preservation.
+ *
+ * Time complexity: O(S · d^H) where S = start nodes adjacent to shells,
+ *   d = avg out-degree, H = MAX_HOPS (8). The shell-adjacency filter and
+ *   depth limit keep this tractable.
+ * Space complexity: O(V + |results|). DFS stack bounded by MAX_HOPS.
+ * Early termination: stops after 500 patterns.
+ */
 export function detectLayering(graph: GraphData, existingRingCount: number): LayeringPattern[] {
   const results: LayeringPattern[] = [];
   let ringCounter = existingRingCount;

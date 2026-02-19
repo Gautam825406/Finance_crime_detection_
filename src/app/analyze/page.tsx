@@ -27,6 +27,7 @@ export default function AnalyzePage() {
   const [selectedAccount, setSelectedAccount] = useState<SuspiciousAccount | null>(null);
   const [apiError, setApiError] = useState<string>("");
   const [validationErrors, setValidationErrors] = useState<ApiValidationError[]>([]);
+  const [csvText, setCsvText] = useState<string>("");
 
   const handleNodeSelect = useCallback((account: SuspiciousAccount | null) => {
     setSelectedAccount(account);
@@ -38,6 +39,7 @@ export default function AnalyzePage() {
     setApiError("");
     setValidationErrors([]);
     setSelectedAccount(null);
+    setCsvText(csvText);
 
     try {
       const response = await fetch("/api/analyze", {
@@ -124,7 +126,7 @@ export default function AnalyzePage() {
         {result && (
           <div className="space-y-6 animate-fade-in-up">
             <SummaryPanel summary={result.summary} />
-            <GraphViewer result={result} onNodeSelect={handleNodeSelect} />
+            <GraphViewer result={result} csvText={csvText} onNodeSelect={handleNodeSelect} />
             <FraudRingTable rings={result.fraud_rings} />
           </div>
         )}
