@@ -1,6 +1,6 @@
-<p align="center">
+<!-- <p align="center">
   <img src="https://raw.githubusercontent.com/Gautam825406/Finance_crime_detection_/main/public/logo.png" alt="Project Logo" width="120" />
-</p>
+</p> -->
 
 <h1 align="center">🚨 Graph-Based Financial Crime Detection Engine</h1>
 
